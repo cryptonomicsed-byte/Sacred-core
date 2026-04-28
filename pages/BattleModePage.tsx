@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { generateBattleReport } from '../services/competitorAnalysisService';
+import { generateBattleReport } from '@infra/analysis/competitorAnalysisService';
 import { BattleReport, ProcessingState, BrandDNA } from '../types';
 import { Swords, Trophy, AlertTriangle, ArrowRight, Activity, TrendingUp, ShieldAlert, Target, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';

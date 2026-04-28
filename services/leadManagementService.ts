@@ -1,38 +1,17 @@
 import { Lead } from '../types-extended';
 import { hybridStorage } from './hybridStorageService';
-
-interface LeadScore {
-  leadId: string;
-  score: number;
-  factors: ScoreFactor[];
-  lastUpdated: Date;
-}
-
-interface ScoreFactor {
-  name: string;
-  weight: number;
-  value: number;
-  contribution: number;
-}
-
-interface LeadActivity {
-  leadId: string;
-  timestamp: Date;
-  action: string;
-  details: Record<string, any>;
-}
+import {
+  LeadActivity,
+  LeadScore,
+  applyActivityScore,
+  buildEmptyLeadScore,
+  defaultLeadScoringWeights,
+  getWeightForAction,
+  summarizeLeadScore
+} from "../src/domain/leads/leadScoring";
 
 class LeadManagementService {
-  private scoringWeights = {
-    emailOpens: 5,
-    emailClicks: 10,
-    pageVisits: 3,
-    formSubmissions: 25,
-    purchaseHistory: 50,
-    engagement: 15,
-    timeOnSite: 2,
-    socialEngagement: 8
-  };
+  private scoringWeights = defaultLeadScoringWeights;
 
   async createLead(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> {
     const newLead: Lead = {
@@ -86,12 +65,7 @@ class LeadManagementService {
   }
 
   private async initializeScore(leadId: string): Promise<void> {
-    const score: LeadScore = {
-      leadId,
-      score: 0,
-      factors: [],
-      lastUpdated: new Date()
-    };
+    const score: LeadScore = buildEmptyLeadScore(leadId);
 
     await hybridStorage.set(`lead-score-${leadId}`, score);
   }
@@ -125,30 +99,7 @@ class LeadManagementService {
     if (!scoreData) return;
 
     // Calculate score increase based on action
-    let scoreIncrease = 0;
-
-    switch (action) {
-      case 'email_open':
-        scoreIncrease = this.scoringWeights.emailOpens;
-        break;
-      case 'email_click':
-        scoreIncrease = this.scoringWeights.emailClicks;
-        break;
-      case 'page_visit':
-        scoreIncrease = this.scoringWeights.pageVisits;
-        break;
-      case 'form_submission':
-        scoreIncrease = this.scoringWeights.formSubmissions;
-        break;
-      case 'purchase':
-        scoreIncrease = this.scoringWeights.purchaseHistory;
-        break;
-      case 'social_engagement':
-        scoreIncrease = this.scoringWeights.socialEngagement;
-        break;
-    }
-
-    scoreData.score += scoreIncrease;
+    scoreData.score = applyActivityScore(scoreData.score, action);
     lead.score = scoreData.score;
     scoreData.lastUpdated = new Date();
 
@@ -178,52 +129,15 @@ class LeadManagementService {
     };
 
     // Calculate factors
-    const factors: Record<string, number> = {};
-
-    for (const activity of activities) {
-      factors[activity.action] = (factors[activity.action] || 0) + 1;
-    }
-
-    // Apply weights
-    let totalScore = 0;
-    for (const [action, count] of Object.entries(factors)) {
-      const weight = this.getWeightForAction(action);
-      const contribution = count * weight;
-      totalScore += contribution;
-
-      scoreData.factors.push({
-        name: action,
-        weight,
-        value: count,
-        contribution
-      });
-    }
-
-    // Decay score for older activities
-    const daysSinceCreated = (Date.now() - lead.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-    const decayFactor = Math.max(0.5, 1 - (daysSinceCreated / 365) * 0.2);
-    totalScore *= decayFactor;
-
-    scoreData.score = Math.round(totalScore);
+    const summary = summarizeLeadScore(lead, activities);
+    scoreData.factors = summary.factors;
+    scoreData.score = summary.score;
     lead.score = scoreData.score;
 
     await hybridStorage.set(`lead-score-${leadId}`, scoreData);
     await hybridStorage.set(`lead-${leadId}`, lead);
 
-    return totalScore;
-  }
-
-  private getWeightForAction(action: string): number {
-    const actionWeights: Record<string, number> = {
-      'email_open': this.scoringWeights.emailOpens,
-      'email_click': this.scoringWeights.emailClicks,
-      'page_visit': this.scoringWeights.pageVisits,
-      'form_submission': this.scoringWeights.formSubmissions,
-      'purchase': this.scoringWeights.purchaseHistory,
-      'social_engagement': this.scoringWeights.socialEngagement
-    };
-
-    return actionWeights[action] || 1;
+    return scoreData.score;
   }
 
   async getLeadsByScore(portfolioId: string, minScore: number = 0): Promise<Lead[]> {

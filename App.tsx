@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { hybridStorage } from './services/hybridStorageService';
-import { initSupabase, checkConnection } from './services/supabaseClient';
-import { sentryService, SentryErrorBoundary } from './services/sentryService';
+import { hybridStorage } from '@infra/storage/hybridStorage';
+import { initSupabase, checkConnection } from '@infra/platform/supabaseClient';
+import { sentryService, SentryErrorBoundary } from '@infra/observability/sentryService';
 
 // Pages
 import DashboardPage from './pages/DashboardPage';

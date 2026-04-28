@@ -24,7 +24,7 @@ import {
   Twitter,
   Instagram
 } from 'lucide-react';
-import { getWorkflowTemplates, getActiveWorkflows, createWorkflow, toggleWorkflowStatus, deleteWorkflow } from '../services/n8nService';
+import { getWorkflowTemplates, getActiveWorkflows, createWorkflow, toggleWorkflowStatus, deleteWorkflow } from '@infra/automation/n8nService';
 import { Workflow as WorkflowType, WorkflowTemplate, CampaignAsset } from '../types';
 import { useStore } from '../store';
 import { BrandSelector } from '../components/BrandSelector';

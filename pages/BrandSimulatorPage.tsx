@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { DesignVariant, CopyVariant, AudienceFeedback, ProcessingState } from '../types';
-import { generateDesignVariants, generateCopyVariants, simulateAudienceReaction } from '../services/simulationService';
+import { generateDesignVariants, generateCopyVariants, simulateAudienceReaction } from '@infra/simulation/simulationService';
 import { 
   FlaskConical, 
   Palette, 

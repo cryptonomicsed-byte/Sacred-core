@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { BrandDNA, Campaign, UserTier, VideoJob, Agent, LeadProfile, ProviderConfig } from './types';
-import { featureFlagService } from './services/featureFlagService';
+import { featureFlagService } from '@infra/state/featureFlagService';
 
 /**
  * Custom IndexedDB Storage for Zustand

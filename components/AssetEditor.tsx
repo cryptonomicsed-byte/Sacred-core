@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CampaignAsset } from '../types';
 import { X, Sparkles, Save, RefreshCw } from 'lucide-react';
-import { universalAiService } from '../services/universalAiService';
+import { universalAiService } from '@infra/ai/universalAiService';
 
 interface AssetEditorProps {
   asset: CampaignAsset;

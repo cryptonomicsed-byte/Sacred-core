@@ -12,8 +12,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Activity, Users, Settings, Download, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
-import { getSupabase, isSupabaseConfigured } from '../services/supabaseClient';
-import { featureFlagService } from '../services/featureFlagService';
+import { getSupabase, isSupabaseConfigured } from '@infra/platform/supabaseClient';
+import { featureFlagService } from '@infra/state/featureFlagService';
 import { useFeatureFlags } from '../store';
 
 interface UsageStats {

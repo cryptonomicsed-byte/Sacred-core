@@ -19,6 +19,18 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
+      "@app/*": [
+        "./src/application/*"
+      ],
+      "@infra/*": [
+        "./src/infrastructure/*"
+      ],
+      "@domain/*": [
+        "./src/domain/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
       "@/*": [
         "./*"
       ]

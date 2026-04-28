@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { toast, ToastMessage } from '../services/toastService';
+import { toast, ToastMessage } from '@infra/ui/toastService';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 export const ToastContainer = () => {

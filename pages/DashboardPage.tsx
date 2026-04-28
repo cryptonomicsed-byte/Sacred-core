@@ -5,8 +5,8 @@ import { DNAHelix } from '../components/DNAHelix';
 import { TrendPulse } from '../components/TrendPulse';
 import { BrandDNA, ProcessingState } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
-import { enhanceBrandExtraction } from '../services/enhancedExtractionService';
-import { checkApiKey } from '../services/geminiService';
+import { enhanceBrandExtraction } from '@infra/extraction/enhancedExtractionService';
+import { checkApiKey } from '@infra/ai/geminiCampaignService';
 
 // Sub-components/pages for tabs
 import BrandSimulatorPage from './BrandSimulatorPage';

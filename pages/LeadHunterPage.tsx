@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store';
-import { huntLeads, generateCloserPortfolio } from '../services/advancedScraperService';
+import { huntLeads, generateCloserPortfolio } from '@app/leads/huntLeads';
 import { LeadProfile, ProcessingState, CloserPortfolio } from '../types';
 import { 
   Target, 

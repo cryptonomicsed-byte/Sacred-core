@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { SessionUser, ChatMessage, ActivityLogItem } from '../types';
-import { collabService } from '../services/collaborationService';
+import { collabService } from '@infra/collaboration/collaborationService';
 import { 
   Users, 
   MessageSquare, 

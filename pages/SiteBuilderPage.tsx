@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { WebsiteData, SiteSection } from '../types';
-import { generateWebsiteStructure, deployWebsite } from '../services/siteGeneratorService';
+import { generateWebsiteStructure } from '@app/sites/generateWebsite';
+import { deployWebsite } from '@infra/sites/deployWebsite';
 import { 
   Layout, 
   Smartphone, 

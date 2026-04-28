@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { BrandDNA, TrendItem } from '../types';
-import { getBrandTrends } from '../services/rocketNewService';
+import { getBrandTrends } from '@infra/insights/rocketNewService';
 import { useStore } from '../store';
 import { TrendingUp, RefreshCw, Flame, AlertCircle, Cpu, Activity, Zap, ZapOff, Power } from 'lucide-react';
 

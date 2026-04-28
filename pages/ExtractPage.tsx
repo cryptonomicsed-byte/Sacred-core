@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { enhanceBrandExtraction } from '../services/enhancedExtractionService';
-import { checkApiKey } from '../services/geminiService';
+import { enhanceBrandExtraction } from '@infra/extraction/enhancedExtractionService';
+import { checkApiKey } from '@infra/ai/geminiCampaignService';
 import { DNAHelix } from '../components/DNAHelix';
 import { ProcessingState } from '../types';
 import { Search, AlertCircle, CheckCircle2, BrainCircuit, Activity, Sparkles, Globe, Settings } from 'lucide-react';

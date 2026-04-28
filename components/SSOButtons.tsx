@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ssoService, OAuthProvider } from '../services/ssoService';
+import { ssoService, OAuthProvider } from '@infra/auth/ssoService';
 
 interface SSOButtonsProps {
   onSignIn?: (provider: OAuthProvider) => void;

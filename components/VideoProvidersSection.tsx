@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VideoEngine, UserTier, VideoJob } from '../types';
-import { getEngineCost, generateVideo } from '../services/videoService';
+import { getEngineCost, generateVideo } from '@infra/video/videoService';
 import { useStore } from '../store';
 import { Film, Zap, Star, Lock, Clock, Play, AlertCircle, Loader2, Download } from 'lucide-react';
 

@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { Agent, AgentType, AgentMessage, BrandDNA } from '../types';
-import { chatWithAgent } from '../services/agentService';
-import { universalAiService } from '../services/universalAiService';
+import { chatWithAgent } from '@infra/agents/agentService';
+import { universalAiService } from '@infra/ai/universalAiService';
 import { Link } from 'react-router-dom';
 import { 
   Bot, 

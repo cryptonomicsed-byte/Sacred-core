@@ -11,6 +11,13 @@
 
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
 import { sentryService } from './sentryService';
+import {
+  DEFAULT_QUOTA_TOTALS,
+  getCurrentMonth,
+  remainingImageGenerations,
+  remainingLlmTokens,
+  remainingVideoMinutes
+} from "../src/domain/billing/quotaPolicy";
 
 export interface UserQuotas {
   userId: string;
@@ -31,9 +38,9 @@ export interface UsageRecord {
 
 const DEFAULT_QUOTAS: UserQuotas = {
   userId: '',
-  llmTokenLimit: 1000000, // 1M tokens/month
-  imageGenerationLimit: 500, // 500 images/month
-  videoRenderingLimit: 120, // 120 minutes/month
+  llmTokenLimit: DEFAULT_QUOTA_TOTALS.llmTokenLimit,
+  imageGenerationLimit: DEFAULT_QUOTA_TOTALS.imageGenerationLimit,
+  videoRenderingLimit: DEFAULT_QUOTA_TOTALS.videoRenderingLimit,
   currentMonth: getCurrentMonth(),
 };
 
@@ -173,7 +180,7 @@ class QuotaService {
       this.getUsage(userId),
     ]);
 
-    const remaining = quotas.llmTokenLimit - usage.llmTokensUsed;
+    const remaining = remainingLlmTokens(quotas, usage);
     const allowed = remaining >= tokensNeeded;
 
     if (!allowed) {
@@ -196,7 +203,7 @@ class QuotaService {
       this.getUsage(userId),
     ]);
 
-    const remaining = quotas.imageGenerationLimit - usage.imagesGenerated;
+    const remaining = remainingImageGenerations(quotas, usage);
     const allowed = remaining >= count;
 
     if (!allowed) {
@@ -219,7 +226,7 @@ class QuotaService {
       this.getUsage(userId),
     ]);
 
-    const remaining = quotas.videoRenderingLimit - usage.videoMinutesRendered;
+    const remaining = remainingVideoMinutes(quotas, usage);
     const allowed = remaining >= minutes;
 
     if (!allowed) {

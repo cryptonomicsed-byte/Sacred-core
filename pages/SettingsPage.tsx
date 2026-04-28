@@ -8,7 +8,7 @@ import {
   ChevronDown, Globe, Box, Terminal, Layers, Sparkles, Users,
   Power, ZapOff
 } from 'lucide-react';
-import { healthCheckService, ProviderStatus } from '../services/healthCheckService';
+import { healthCheckService, ProviderStatus } from '@infra/health/healthCheckService';
 import AffiliateHubPage from './AffiliateHubPage';
 
 // --- Provider Metadata ---

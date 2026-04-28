@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Users, 
   DollarSign, 
   TrendingUp, 
@@ -18,7 +18,7 @@ import {
   getAffiliateTier, 
   getPayoutHistory, 
   getMarketingAssets 
-} from '../services/affiliateService';
+} from '@infra/integrations/affiliateService';
 import { AffiliateStats, AffiliateTier, AffiliatePayout } from '../types';
 
 const AffiliateHubPage = () => {
