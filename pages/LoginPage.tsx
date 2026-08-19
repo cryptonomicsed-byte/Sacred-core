@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 
 const LoginPage = () => {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,19 +27,23 @@ const LoginPage = () => {
   const [authMethod, setAuthMethod] = useState<'standard' | 'sso'>('standard');
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn } = useAuth();
+  const { signIn, signUp } = useAuth();
 
   const redirectTo = (location.state as { from?: Location })?.from?.pathname || '/';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setIsLoading(true);
     try {
-      await signIn(email, password);
+      if (mode === 'signup') {
+        await signUp(email, password, name || email.split('@')[0]);
+      } else {
+        await signIn(email, password);
+      }
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Sign in failed');
+      setFormError(err instanceof Error ? err.message : (mode === 'signup' ? 'Sign up failed' : 'Sign in failed'));
     } finally {
       setIsLoading(false);
     }
@@ -107,8 +113,12 @@ const LoginPage = () => {
         <div className="p-8 md:p-16 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <div className="mb-10 text-center lg:text-left">
-              <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">Initialize Session</h1>
-              <p className="text-zinc-500 text-sm font-medium">Verify your identity to unlock the brand matrix.</p>
+              <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
+                {mode === 'signup' ? 'Create Identity' : 'Initialize Session'}
+              </h1>
+              <p className="text-zinc-500 text-sm font-medium">
+                {mode === 'signup' ? 'Register a new operative account.' : 'Verify your identity to unlock the brand matrix.'}
+              </p>
             </div>
 
             {/* Auth Mode Toggle */}
@@ -129,7 +139,21 @@ const LoginPage = () => {
 
             {authMethod === 'standard' ? (
               <>
-                <form onSubmit={handleLogin} className="space-y-4 mb-8">
+                <form onSubmit={handleSubmit} className="space-y-4 mb-8">
+                  {mode === 'signup' && (
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] px-1">Name</label>
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Jane Operative"
+                          className="w-full bg-black/40 border border-zinc-800 rounded-xl py-4 px-6 text-white font-bold focus:ring-1 focus:ring-brand-500 outline-none transition-all placeholder-zinc-800"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] px-1">Identity (Email)</label>
                     <div className="relative group">
@@ -148,23 +172,26 @@ const LoginPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center px-1">
                       <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em]">Neural Override (Password)</label>
-                      <button
-                        type="button"
-                        disabled
-                        title="Password reset is not implemented yet"
-                        className="text-[9px] font-black text-zinc-700 uppercase cursor-not-allowed"
-                      >
-                        Recover Key (Not Implemented)
-                      </button>
+                      {mode === 'signin' && (
+                        <button
+                          type="button"
+                          disabled
+                          title="Password reset is not implemented yet"
+                          className="text-[9px] font-black text-zinc-700 uppercase cursor-not-allowed"
+                        >
+                          Recover Key (Not Implemented)
+                        </button>
+                      )}
                     </div>
                     <div className="relative group">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-brand-500 transition-colors" />
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         required
+                        minLength={mode === 'signup' ? 8 : undefined}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
+                        placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••••••'}
                         className="w-full bg-black/40 border border-zinc-800 rounded-xl py-4 pl-12 pr-6 text-white font-bold focus:ring-1 focus:ring-brand-500 outline-none transition-all placeholder-zinc-800"
                       />
                     </div>
@@ -184,7 +211,7 @@ const LoginPage = () => {
                     ) : (
                       <>
                         <Zap className="w-4 h-4 fill-current" />
-                        Authorize Link
+                        {mode === 'signup' ? 'Create Account' : 'Authorize Link'}
                       </>
                     )}
                   </button>
@@ -260,7 +287,29 @@ const LoginPage = () => {
 
             <div className="mt-12 text-center">
               <p className="text-xs text-zinc-600 font-medium uppercase tracking-widest">
-                New Operative? <Link to="/landing" className="text-brand-500 font-black hover:text-brand-400 transition-colors">Apply for Access</Link>
+                {mode === 'signup' ? (
+                  <>
+                    Already Registered?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setMode('signin'); setFormError(null); }}
+                      className="text-brand-500 font-black hover:text-brand-400 transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    New Operative?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setMode('signup'); setFormError(null); }}
+                      className="text-brand-500 font-black hover:text-brand-400 transition-colors"
+                    >
+                      Create Account
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           </div>

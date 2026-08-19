@@ -1,21 +1,29 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Real auth flow (server.ts + SQLite)', () => {
-  test('signup -> login -> access protected routes -> logout -> blocked again', async ({ page }) => {
+  test('signup via UI -> login -> access protected routes -> logout -> blocked again', async ({ page }) => {
     const pageErrors: string[] = [];
     page.on('pageerror', (err) => pageErrors.push(err.message));
 
-    // No signup UI exists yet (LoginPage only has a login form), so the account
-    // is created directly against the real API, then the actual login UI is
-    // exercised end-to-end.
     const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
     const password = 'correcthorsebattery';
-    const signupRes = await page.request.post('http://localhost:4000/api/auth/signup', {
-      data: { email, password, name: 'E2E User' }
-    });
-    expect(signupRes.ok()).toBeTruthy();
 
+    // Exercise the real signup UI (Create Account toggle on LoginPage), not a direct API call.
     await page.goto('/#/login');
+    await page.getByRole('button', { name: /Create Account/i }).click();
+    await page.getByPlaceholder('Jane Operative').fill('E2E User');
+    await page.getByPlaceholder('agent@company.com').fill(email);
+    await page.getByPlaceholder('At least 8 characters').fill(password);
+    await page.getByRole('button', { name: /Create Account/i }).click();
+
+    await expect(page).toHaveURL(/\/#\/$/);
+    await expect(page.locator('nav')).toBeVisible();
+
+    // Log out and back in through the standard sign-in form to prove the account persisted.
+    await page.getByRole('button', { name: /Logout/i }).click();
+    await expect(page).toHaveURL(/\/#\/login$/);
+    await page.waitForTimeout(500);
+
     await page.getByPlaceholder('agent@company.com').fill(email);
     await page.getByPlaceholder('••••••••••••').fill(password);
     await page.getByRole('button', { name: /Authorize Link/i }).click();
@@ -38,16 +46,26 @@ test.describe('Real auth flow (server.ts + SQLite)', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('duplicate signup is rejected', async ({ page }) => {
+  test('duplicate signup via UI shows an error instead of silently succeeding', async ({ page }) => {
     const email = `e2e-dup-${Date.now()}@example.com`;
-    const first = await page.request.post('http://localhost:4000/api/auth/signup', {
-      data: { email, password: 'correcthorsebattery' }
-    });
-    expect(first.ok()).toBeTruthy();
+    const password = 'correcthorsebattery';
 
-    const second = await page.request.post('http://localhost:4000/api/auth/signup', {
-      data: { email, password: 'correcthorsebattery' }
-    });
-    expect(second.status()).toBe(409);
+    const signUp = async () => {
+      await page.goto('/#/login');
+      await page.getByRole('button', { name: /Create Account/i }).click();
+      await page.getByPlaceholder('agent@company.com').fill(email);
+      await page.getByPlaceholder('At least 8 characters').fill(password);
+      await page.getByRole('button', { name: /Create Account/i }).click();
+    };
+
+    await signUp();
+    await expect(page).toHaveURL(/\/#\/$/);
+
+    await page.getByRole('button', { name: /Logout/i }).click();
+    await expect(page).toHaveURL(/\/#\/login$/);
+    await page.waitForTimeout(500);
+
+    await signUp();
+    await expect(page.getByRole('alert')).toContainText(/already exists/i);
   });
 });
