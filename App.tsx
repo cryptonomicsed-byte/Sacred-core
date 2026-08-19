@@ -1,28 +1,53 @@
-import React, { useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, Suspense, lazy } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { hybridStorage } from './services/hybridStorageService';
 import { initSupabase, checkConnection } from './services/supabaseClient';
 import { sentryService, SentryErrorBoundary } from './services/sentryService';
+import { useStore } from './store';
 
-// Pages
-import DashboardPage from './pages/DashboardPage';
-import ExtractPage from './pages/ExtractPage';
-import CampaignsPage from './pages/CampaignsPage';
-import SonicLabPage from './pages/SonicLabPage';
-import AutomationsPage from './pages/AutomationsPage';
-import BattleModePage from './pages/BattleModePage';
-import LeadHunterPage from './pages/LeadHunterPage';
-import SchedulerPage from './pages/SchedulerPage';
-import LiveSessionPage from './pages/LiveSessionPage';
-import AffiliateHubPage from './pages/AffiliateHubPage';
-import BrandSimulatorPage from './pages/BrandSimulatorPage';
-import AgentForgePage from './pages/AgentForgePage';
-import SiteBuilderPage from './pages/SiteBuilderPage';
-import LandingPage from './pages/LandingPage';
-import SharedProfilePage from './pages/SharedProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import AdminDashboard from './pages/AdminDashboard';
+// Pages — lazy-loaded so each route ships its own chunk instead of one 1MB bundle.
+// LoginPage stays eager: it's the first thing an unauthenticated visitor needs.
+import LoginPage from './pages/LoginPage';
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ExtractPage = lazy(() => import('./pages/ExtractPage'));
+const CampaignsPage = lazy(() => import('./pages/CampaignsPage'));
+const SonicLabPage = lazy(() => import('./pages/SonicLabPage'));
+const AutomationsPage = lazy(() => import('./pages/AutomationsPage'));
+const BattleModePage = lazy(() => import('./pages/BattleModePage'));
+const LeadHunterPage = lazy(() => import('./pages/LeadHunterPage'));
+const SchedulerPage = lazy(() => import('./pages/SchedulerPage'));
+const LiveSessionPage = lazy(() => import('./pages/LiveSessionPage'));
+const AffiliateHubPage = lazy(() => import('./pages/AffiliateHubPage'));
+const BrandSimulatorPage = lazy(() => import('./pages/BrandSimulatorPage'));
+const AgentForgePage = lazy(() => import('./pages/AgentForgePage'));
+const SiteBuilderPage = lazy(() => import('./pages/SiteBuilderPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const SharedProfilePage = lazy(() => import('./pages/SharedProfilePage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+    <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+  </div>
+);
+
+const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
+  const { isAuthenticated } = useStore();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const LoginPageRoute = () => {
+  const { isAuthenticated } = useStore();
+  return isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />;
+};
 
 export default function App() {
   useEffect(() => {
@@ -64,26 +89,34 @@ export default function App() {
     } showDialog>
       <HashRouter>
         <Layout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/extract" element={<ExtractPage />} />
-            <Route path="/simulator" element={<BrandSimulatorPage />} />
-            <Route path="/campaigns" element={<CampaignsPage />} />
-            <Route path="/agents" element={<AgentForgePage />} />
-            <Route path="/builder" element={<SiteBuilderPage />} />
-            <Route path="/scheduler" element={<SchedulerPage />} />
-            <Route path="/leads" element={<LeadHunterPage />} />
-            <Route path="/sonic" element={<SonicLabPage />} />
-            <Route path="/live" element={<LiveSessionPage />} />
-            <Route path="/affiliate" element={<AffiliateHubPage />} />
-            <Route path="/automations" element={<AutomationsPage />} />
-            <Route path="/battle" element={<BattleModePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/share/:id" element={<SharedProfilePage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPageRoute />} />
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/share/:id" element={<SharedProfilePage />} />
+
+              {/* Protected App Routes */}
+              <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/extract" element={<ProtectedRoute><ExtractPage /></ProtectedRoute>} />
+              <Route path="/simulator" element={<ProtectedRoute><BrandSimulatorPage /></ProtectedRoute>} />
+              <Route path="/campaigns" element={<ProtectedRoute><CampaignsPage /></ProtectedRoute>} />
+              <Route path="/agents" element={<ProtectedRoute><AgentForgePage /></ProtectedRoute>} />
+              <Route path="/builder" element={<ProtectedRoute><SiteBuilderPage /></ProtectedRoute>} />
+              <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} />
+              <Route path="/leads" element={<ProtectedRoute><LeadHunterPage /></ProtectedRoute>} />
+              <Route path="/sonic" element={<ProtectedRoute><SonicLabPage /></ProtectedRoute>} />
+              <Route path="/live" element={<ProtectedRoute><LiveSessionPage /></ProtectedRoute>} />
+              <Route path="/affiliate" element={<ProtectedRoute><AffiliateHubPage /></ProtectedRoute>} />
+              <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
+              <Route path="/battle" element={<ProtectedRoute><BattleModePage /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </Layout>
       </HashRouter>
     </SentryErrorBoundary>

@@ -408,7 +408,7 @@ class AnalyticsService {
     this.campaignMetrics = [];
     this.leadMetrics = [];
     this.abTestResults = [];
-    await hybridStorage.delete('campaign-analytics');
+    await hybridStorage.remove('campaign-analytics');
     console.log('🔄 Analytics reset');
   }
 }

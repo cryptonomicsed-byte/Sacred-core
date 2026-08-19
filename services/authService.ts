@@ -1,183 +1,172 @@
-import { getSupabase, isSupabaseConfigured } from './supabaseClient';
+/**
+ * Real auth against server.ts (SQLite + bcrypt + JWT) — no Supabase dependency.
+ * Interface kept stable so AuthContext/LoginPage don't need to change if this
+ * later swaps to a hosted backend.
+ */
+
+const TOKEN_KEY = 'sacred_core_token';
+const REFRESH_TOKEN_KEY = 'sacred_core_refresh_token';
 
 export interface User {
   id: string;
   email: string;
   name?: string;
   avatar?: string;
-  createdAt?: Date;
+  createdAt?: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  error: string | null;
-}
+type Listener = (user: User | null) => void;
 
 class AuthService {
-  async signUp(
-    email: string,
-    password: string,
-    name: string
-  ): Promise<User> {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Authentication not configured');
-    }
+  private listeners = new Set<Listener>();
 
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('Supabase unavailable');
+  private getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+  }
 
-    const { data: { user }, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name }
+  private setTokens(token: string, refreshToken: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  private getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  private clearToken(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+
+  private emit(user: User | null): void {
+    this.listeners.forEach((cb) => cb(user));
+  }
+
+  private async rawRequest<T>(path: string, init?: RequestInit): Promise<T> {
+    const token = this.getToken();
+    const res = await fetch(path, {
+      ...init,
+      headers: {
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init?.headers || {})
       }
     });
 
-    if (error) throw new Error(error.message);
-    if (!user) throw new Error('Sign up failed');
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(body?.error || `Request failed (${res.status})`) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+    return body as T;
+  }
 
+  private async refreshAccessToken(): Promise<boolean> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const { token, refreshToken: newRefreshToken } = await this.rawRequest<{ token: string; refreshToken: string }>(
+        '/api/auth/refresh',
+        { method: 'POST', body: JSON.stringify({ refreshToken }) }
+      );
+      this.setTokens(token, newRefreshToken);
+      return true;
+    } catch {
+      this.clearToken();
+      return false;
+    }
+  }
+
+  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+    try {
+      return await this.rawRequest<T>(path, init);
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 401 && path !== '/api/auth/refresh') {
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          return this.rawRequest<T>(path, init);
+        }
+      }
+      throw err;
+    }
+  }
+
+  async signUp(email: string, password: string, name: string): Promise<User> {
+    const { token, refreshToken, user } = await this.request<{ token: string; refreshToken: string; user: User }>('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name })
+    });
+
+    this.setTokens(token, refreshToken);
     console.log(`✅ User signed up: ${email}`);
-
-    return {
-      id: user.id,
-      email: user.email || email,
-      name: name
-    };
+    this.emit(user);
+    return user;
   }
 
   async signIn(email: string, password: string): Promise<User> {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Authentication not configured');
-    }
-
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('Supabase unavailable');
-
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    const { token, refreshToken, user } = await this.request<{ token: string; refreshToken: string; user: User }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
     });
 
-    if (error) throw new Error(error.message);
-    if (!user) throw new Error('Sign in failed');
-
+    this.setTokens(token, refreshToken);
     console.log(`✅ User signed in: ${email}`);
-
-    return {
-      id: user.id,
-      email: user.email || email
-    };
+    this.emit(user);
+    return user;
   }
 
   async getCurrentUser(): Promise<User | null> {
-    if (!isSupabaseConfigured()) {
+    if (!this.getToken()) {
       return null;
     }
 
-    const supabase = getSupabase();
-    if (!supabase) return null;
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
+    try {
+      const { user } = await this.request<{ user: User }>('/api/auth/me');
+      console.log(`✅ Current user: ${user.email}`);
+      return user;
+    } catch {
       console.log('ℹ️ No authenticated user');
+      this.clearToken();
       return null;
     }
-
-    console.log(`✅ Current user: ${user.email}`);
-
-    return {
-      id: user.id,
-      email: user.email || '',
-      name: user.user_metadata?.name
-    };
   }
 
   async signOut(): Promise<void> {
-    if (!isSupabaseConfigured()) {
-      return;
+    try {
+      const refreshToken = this.getRefreshToken();
+      await this.request('/api/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken })
+      });
+    } finally {
+      this.clearToken();
+      console.log('✅ User signed out');
+      this.emit(null);
     }
-
-    const supabase = getSupabase();
-    if (!supabase) return;
-
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    console.log('✅ User signed out');
   }
 
   async updateProfile(name: string, avatar?: string): Promise<User> {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Authentication not configured');
-    }
-
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('Supabase unavailable');
-
-    const { data: { user }, error } = await supabase.auth.updateUser({
-      data: { name, avatar }
+    const { user } = await this.request<{ user: User }>('/api/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify({ name, avatar })
     });
 
-    if (error) throw new Error(error.message);
-    if (!user) throw new Error('Update failed');
-
-    console.log(`✅ Profile updated`);
-
-    return {
-      id: user.id,
-      email: user.email || '',
-      name: name,
-      avatar: avatar
-    };
+    console.log('✅ Profile updated');
+    this.emit(user);
+    return user;
   }
 
-  async resetPassword(email: string): Promise<void> {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Authentication not configured');
-    }
-
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('Supabase unavailable');
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-
-    if (error) throw new Error(error.message);
-
-    console.log(`✅ Password reset email sent to ${email}`);
+  async resetPassword(_email: string): Promise<void> {
+    throw new Error('Password reset is not implemented yet');
   }
 
-  async onAuthStateChange(
-    callback: (user: User | null) => void
-  ): Promise<() => void> {
-    if (!isSupabaseConfigured()) {
-      return () => {};
-    }
-
-    const supabase = getSupabase();
-    if (!supabase) return () => {};
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          callback({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name
-          });
-        } else {
-          callback(null);
-        }
-      }
-    );
-
+  async onAuthStateChange(callback: Listener): Promise<() => void> {
+    this.listeners.add(callback);
     return () => {
-      subscription?.unsubscribe();
+      this.listeners.delete(callback);
     };
   }
 }

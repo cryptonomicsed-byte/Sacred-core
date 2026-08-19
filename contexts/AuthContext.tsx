@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { authService, User } from '../services/authService';
+import { useStore } from '../store';
 
 interface AuthContextType {
   user: User | null;
@@ -18,6 +19,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { login: storeLogin, logout: storeLogout } = useStore();
+
+  // Keep the store's isAuthenticated flag (used by ProtectedRoute) in sync
+  // with the real Supabase-backed session, so there's a single source of truth.
+  // Skip while the initial session check is still pending, so we don't briefly
+  // clobber a persisted isAuthenticated=true with a false before we actually know.
+  useEffect(() => {
+    if (isLoading) return;
+    if (user) {
+      storeLogin();
+    } else {
+      storeLogout();
+    }
+  }, [user, isLoading, storeLogin, storeLogout]);
 
   // Check if user is already logged in
   useEffect(() => {

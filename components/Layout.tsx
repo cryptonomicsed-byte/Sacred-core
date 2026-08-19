@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Dna, LayoutDashboard, Sparkles, Megaphone, Bot, 
-  Layout as LayoutIcon, Target, Users, 
+import {
+  Dna, LayoutDashboard, Sparkles, Megaphone, Bot,
+  Layout as LayoutIcon, Target, Users,
   Zap, Settings, Activity, ChevronLeft, ChevronRight,
-  LogOut
+  LogOut, AlertTriangle, X
 } from 'lucide-react';
 import { SonicOrb } from './SonicOrb';
 import { ToastContainer } from './ToastContainer';
-import { useStore } from '../store';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -46,14 +46,25 @@ const SidebarItem: React.FC<{ to: string, icon: any, label: string, active: bool
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useStore();
+  const { signOut } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
+  const [dataWarningDismissed, setDataWarningDismissed] = useState(
+    () => sessionStorage.getItem('sacred-core-data-warning-dismissed') === '1'
+  );
+
+  const dismissDataWarning = () => {
+    sessionStorage.setItem('sacred-core-data-warning-dismissed', '1');
+    setDataWarningDismissed(true);
+  };
+
   const isPublicRoute = location.pathname === '/landing' || location.pathname === '/login' || location.pathname.startsWith('/share');
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } finally {
+      navigate('/login');
+    }
   };
 
   if (isPublicRoute) {
@@ -140,6 +151,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         
         {/* Page Content */}
         <div className="relative z-10 flex-1 overflow-y-auto scroll-smooth">
+          {!dataWarningDismissed && (
+            <div className="flex items-start gap-3 mx-4 mt-4 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-400" />
+              <div className="flex-1 text-xs leading-relaxed">
+                <span className="font-semibold text-amber-300">Local data only:</span>{' '}
+                Campaigns, leads, and brand data are stored in this browser only (no server backup).
+                Clearing your browser data or switching devices will permanently delete it. Export anything important regularly.
+              </div>
+              <button
+                onClick={dismissDataWarning}
+                className="shrink-0 text-amber-400/70 hover:text-amber-200 transition-colors"
+                title="Dismiss for this session"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           {children}
         </div>
 

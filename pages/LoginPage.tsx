@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useStore } from '../store';
-import { 
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import {
   Dna, 
   Mail, 
   Lock, 
@@ -21,19 +21,26 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<'standard' | 'sso'>('standard');
   const navigate = useNavigate();
-  const { login } = useStore();
+  const location = useLocation();
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const redirectTo = (location.state as { from?: Location })?.from?.pathname || '/';
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     setIsLoading(true);
-    // Simulate auth delay
-    setTimeout(() => {
+    try {
+      await signIn(email, password);
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Sign in failed');
+    } finally {
       setIsLoading(false);
-      login(); // Update global auth state
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -141,7 +148,14 @@ const LoginPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center px-1">
                       <label className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em]">Neural Override (Password)</label>
-                      <button type="button" className="text-[9px] font-black text-brand-500 uppercase hover:text-brand-400">Recover Key</button>
+                      <button
+                        type="button"
+                        disabled
+                        title="Password reset is not implemented yet"
+                        className="text-[9px] font-black text-zinc-700 uppercase cursor-not-allowed"
+                      >
+                        Recover Key (Not Implemented)
+                      </button>
                     </div>
                     <div className="relative group">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-brand-500 transition-colors" />
@@ -156,7 +170,11 @@ const LoginPage = () => {
                     </div>
                   </div>
 
-                  <button 
+                  {formError && (
+                    <p className="text-xs font-bold text-red-400 px-1" role="alert">{formError}</p>
+                  )}
+
+                  <button
                     type="submit"
                     disabled={isLoading}
                     className="w-full py-4 bg-brand-600 hover:bg-brand-500 disabled:bg-zinc-800 text-white font-black rounded-2xl shadow-xl shadow-brand-900/20 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs h-[56px]"
@@ -178,16 +196,29 @@ const LoginPage = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <button className="py-3 bg-black/40 border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-white/5 hover:text-white transition-all group">
-                    <Chrome className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <button
+                    disabled
+                    title="Google OAuth is not implemented yet — use Standard Auth"
+                    className="py-3 bg-black/20 border border-zinc-900 rounded-xl flex items-center justify-center text-zinc-700 cursor-not-allowed"
+                  >
+                    <Chrome className="w-5 h-5" />
                   </button>
-                  <button className="py-3 bg-black/40 border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-white/5 hover:text-white transition-all group">
-                    <Github className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <button
+                    disabled
+                    title="GitHub OAuth is not implemented yet — use Standard Auth"
+                    className="py-3 bg-black/20 border border-zinc-900 rounded-xl flex items-center justify-center text-zinc-700 cursor-not-allowed"
+                  >
+                    <Github className="w-5 h-5" />
                   </button>
-                  <button className="py-3 bg-black/40 border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-white/5 hover:text-white transition-all group">
-                    <Linkedin className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <button
+                    disabled
+                    title="LinkedIn OAuth is not implemented yet — use Standard Auth"
+                    className="py-3 bg-black/20 border border-zinc-900 rounded-xl flex items-center justify-center text-zinc-700 cursor-not-allowed"
+                  >
+                    <Linkedin className="w-5 h-5" />
                   </button>
                 </div>
+                <p className="text-[9px] text-zinc-700 text-center mt-3 uppercase tracking-widest font-bold">OAuth providers not implemented</p>
               </>
             ) : (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -212,11 +243,12 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <button 
-                  onClick={handleLogin}
-                  className="w-full py-4 bg-zinc-100 hover:bg-white text-black font-black rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs h-[56px]"
+                <button
+                  disabled
+                  title="SAML/OKTA SSO is not implemented yet — use Standard Auth"
+                  className="w-full py-4 bg-zinc-100/40 text-black/40 font-black rounded-2xl shadow-xl cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-widest text-xs h-[56px]"
                 >
-                  Initiate SSO Handshake
+                  Initiate SSO Handshake (Not Implemented)
                 </button>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">

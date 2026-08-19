@@ -32,6 +32,13 @@ export interface DataResidencyRule {
   complianceRequirements: string[];
 }
 
+export interface ComplianceAudit {
+  timestamp: Date;
+  type: string;
+  status: 'pass' | 'fail';
+  findings: string[];
+}
+
 class EnterpriseFeaturesService {
   private config: EnterpriseConfig = {
     ssoEnabled: false,
@@ -46,12 +53,7 @@ class EnterpriseFeaturesService {
   private ssoConfig: SSOConfiguration | null = null;
   private compliancePolicies: Map<string, CompliancePolicy> = new Map();
   private dataResidencyRules: Map<string, DataResidencyRule> = new Map();
-  private complianceAudits: Array<{
-    timestamp: Date;
-    type: string;
-    status: 'pass' | 'fail';
-    findings: string[];
-  }> = [];
+  private complianceAudits: ComplianceAudit[] = [];
 
   async initialize(): Promise<void> {
     this.setupDataResidencyRules();
@@ -233,7 +235,7 @@ class EnterpriseFeaturesService {
     return { status, findings, timestamp: new Date() };
   }
 
-  async getComplianceAudits(limit: number = 50): Promise<typeof this.complianceAudits> {
+  async getComplianceAudits(limit: number = 50): Promise<ComplianceAudit[]> {
     return this.complianceAudits.slice(-limit);
   }
 
@@ -299,7 +301,7 @@ class EnterpriseFeaturesService {
     dataResidency: string;
     ssoEnabled: boolean;
     encryptionEnabled: boolean;
-    audits: typeof this.complianceAudits;
+    audits: ComplianceAudit[];
   }> {
     return {
       mode: this.config.complianceMode,

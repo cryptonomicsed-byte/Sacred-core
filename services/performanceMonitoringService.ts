@@ -329,7 +329,7 @@ class PerformanceMonitoringService {
    */
   async reset(): Promise<void> {
     this.metrics = [];
-    await hybridStorage.delete('performance-metrics');
+    await hybridStorage.remove('performance-metrics');
     console.log('🔄 Performance metrics reset');
   }
 

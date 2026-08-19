@@ -14,7 +14,7 @@ interface SSOButtonsProps {
 }
 
 export function SSOButtons({ onSignIn, compact = false }: SSOButtonsProps) {
-  const [providers, setProviders] = useState<typeof ssoService.getAvailableProviders()>([]);
+  const [providers, setProviders] = useState<ReturnType<typeof ssoService.getAvailableProviders>>([]);
   const [loading, setLoading] = useState<OAuthProvider | null>(null);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ interface LinkProviderProps {
 }
 
 export function LinkProvider({ onLinked, onError }: LinkProviderProps) {
-  const [providers, setProviders] = useState<typeof ssoService.getAvailableProviders()>([]);
+  const [providers, setProviders] = useState<ReturnType<typeof ssoService.getAvailableProviders>>([]);
   const [linked, setLinked] = useState<OAuthProvider[]>([]);
   const [loading, setLoading] = useState<OAuthProvider | null>(null);
 

@@ -1,11 +1,10 @@
-# Sacred Core - Enterprise AI Marketing Platform
-**Grade A+ | Production Ready | Enterprise Hardened**
+# Sacred Core - AI Marketing Platform
 
 ## Overview
 
-Sacred Core is a production-ready, enterprise-grade AI-powered marketing platform that transforms how teams create, manage, and optimize marketing campaigns using advanced AI capabilities.
+Sacred Core is an AI-powered marketing platform for creating, managing, and optimizing marketing campaigns using multiple AI providers.
 
-**Current Status:** ✅ Phase 4 Complete (All core features implemented)
+**Current Status:** In development. Auth (signup/login/logout) is real (SQLite + bcrypt + JWT) and E2E-tested. Campaign/lead/brand data is client-side only (Zustand + IndexedDB) — no server persistence yet. Not deployed to production. See [FINAL_STATUS_REPORT.md](./FINAL_STATUS_REPORT.md) for the honest current state.
 
 ---
 
@@ -36,12 +35,12 @@ Sacred Core is a production-ready, enterprise-grade AI-powered marketing platfor
 - **Competitor Analysis:** Market intelligence tools
 - **Performance Monitoring:** Provider efficiency tracking
 
-### 🔐 Enterprise Security
-- **OIDC SSO:** Google, GitHub, Microsoft authentication
-- **Input Validation:** XSS and injection protection
-- **Rate Limiting:** API protection and quota enforcement
-- **Audit Logging:** Complete activity tracking
-- **TypeScript Strict Mode:** 100% type safety
+### 🔐 Security
+- **Auth:** Real JWT auth backed by SQLite + bcrypt (`server.ts`); Supabase deferred until a dedicated VPS is available
+- **SSO:** Not implemented — UI buttons exist but are disabled
+- **Input Validation:** Basic request validation on auth endpoints
+- **Rate Limiting:** `@fastify/rate-limit` active on the API
+- **TypeScript Strict Mode:** enabled, 0 errors
 
 ---
 
@@ -51,7 +50,6 @@ Sacred Core is a production-ready, enterprise-grade AI-powered marketing platfor
 ```bash
 Node.js 18+
 npm or pnpm
-Supabase account (optional, for persistence)
 ```
 
 ### Installation
@@ -93,10 +91,10 @@ npm run preview
 - **Frontend:** React 19 + TypeScript + Vite
 - **State:** Zustand (with IndexedDB persistence)
 - **UI:** Tailwind CSS + Headless UI
-- **Services:** 35+ microservices
-- **Database:** Supabase (PostgreSQL)
-- **Monitoring:** Sentry
-- **Authentication:** Auth0 + OIDC
+- **Backend:** Fastify (auth only — see server.ts)
+- **Database:** SQLite (better-sqlite3), local file; Supabase deferred
+- **Monitoring:** Sentry (opt-in, requires VITE_SENTRY_DSN)
+- **Authentication:** JWT (@fastify/jwt) + bcrypt, self-hosted
 
 ### Service Structure
 ```
@@ -117,36 +115,16 @@ services/
 
 ## Provider Support Matrix
 
+Provider routing code exists for the providers below; each one only works if the user supplies their own API key for it in Settings (`store.ts` `providers.keys`). Costs are estimates from provider pricing pages, not measured. No success-rate/latency figures have been measured against live traffic — treat any such numbers elsewhere in this repo's docs as unverified.
+
 ### LLM Providers
-| Provider | Model | Cost | Status |
-|----------|-------|------|--------|
-| Gemini | Gemini 2.0 | $0.0001/token | ✅ Active |
-| OpenAI | GPT-4, GPT-3.5 | $0.003/token | ✅ Active |
-| Anthropic | Claude 3 | $0.0015/token | ✅ Active |
-| Mistral | Mistral Large | $0.0007/token | ✅ Active |
-| Groq | Llama 3.3 | $0.0001/token | ✅ Active |
-| DeepSeek | DeepSeek Chat | $0.001/token | ✅ Active |
+Gemini, OpenAI (GPT-4/3.5), Anthropic (Claude), Mistral, Groq, DeepSeek
 
 ### Image Providers
-| Provider | Model | Cost | Status |
-|----------|-------|------|--------|
-| Stability | Ultra | $0.025/image | ✅ Active |
-| OpenAI | DALLE-4 | $0.08/image | ✅ Active |
-| Leonardo | Leonardo | $0.005/image | ✅ Active |
-| Black Forest | Flux | $0.008/image | ✅ Active |
-| Midjourney | MJ v6 | $0.10/image | ✅ Active |
-| Recraft | Recraft | $0.015/image | ✅ Active |
-| Adobe | Firefly | $0.012/image | ✅ Active |
+Stability, OpenAI (DALL-E), Leonardo, Black Forest (Flux), Midjourney, Recraft, Adobe Firefly
 
 ### Video Providers
-| Provider | Model | Cost | Status |
-|----------|-------|------|--------|
-| OpenAI | Sora | $0.20/video | ✅ Queued |
-| Google | Veo | $0.15/video | ✅ Queued |
-| Runway | Gen 3 | $0.10/video | ✅ Queued |
-| Kling | Kling | $0.05/video | ✅ Queued |
-| Luma | Dream | $0.08/video | ✅ Queued |
-| LTX | LTX-2 | $0.12/video | ✅ Queued |
+Sora, Veo, Runway, Kling, Luma, LTX-2 — video generation is async/queued by nature of these providers' APIs, not a Sacred Core design choice.
 
 ---
 
@@ -233,26 +211,18 @@ Access at `/admin` (requires authentication):
 
 ## Quality Metrics
 
-### Code Quality
-✅ **TypeScript:** Strict mode, 0 errors  
-✅ **ESLint:** 0 warnings  
-✅ **Type Safety:** 100% coverage  
+### Code Quality (verified)
+✅ **TypeScript:** Strict mode, 0 errors (`npx tsc --noEmit`)
+✅ **Build:** Clean, no warnings (`npm run build`)
+✅ **E2E Tests:** 7 Playwright tests passing (auth flows + route guarding); no unit test suite
 
-### Performance
-✅ **Page Load:** < 1 second  
-✅ **API Response:** < 500ms P95  
-✅ **Bundle Size:** 220 KB gzipped  
-
-### Reliability
-✅ **Uptime:** 99.9%+  
-✅ **Error Rate:** < 0.1%  
-✅ **Success Rate:** > 99.5%  
+### Not measured
+Page load time, API latency percentiles, bundle size, uptime, error rate, and OWASP compliance have **not** been benchmarked or audited — the app has never run in production. Don't cite specific numbers for these until they're actually measured.
 
 ### Security
-✅ **OWASP Top 10:** Compliant  
-✅ **Input Validation:** 100%  
-✅ **Rate Limiting:** Active  
-✅ **Secrets:** No hardcoded keys  
+✅ **Rate Limiting:** Active (`@fastify/rate-limit`)
+✅ **Secrets:** No hardcoded keys; JWT_SECRET required via env, server refuses to start without it
+⚠️ **Input Validation:** basic (required fields, password length) — not a full audit
 
 ---
 
@@ -276,10 +246,4 @@ Proprietary - Sacred Core Development Team
 
 ---
 
-## Credits
-
-Built by a team committed to enterprise-grade AI marketing solutions.
-
----
-
-**Status:** Production Ready ✅ | **Grade:** A+ | **Last Updated:** February 2026
+**Status:** In development, not production-deployed | **Last Updated:** 2026-08-04

@@ -257,6 +257,10 @@ class AIProviderService {
     provider: AIProvider,
     options?: any
   ): Promise<string> {
+    if (!provider.apiKey) {
+      throw new Error(`No API key configured for provider: ${provider.name}`);
+    }
+
     // Use fetch API instead of SDK to avoid import issues
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',

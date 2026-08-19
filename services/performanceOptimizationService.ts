@@ -7,6 +7,7 @@ export interface PerformanceMetrics {
   timeToInteractive: number;
   memoryUsage: number;
   databaseQueryTime: number;
+  timestamp: Date;
 }
 
 export interface CacheConfig {
@@ -131,8 +132,8 @@ class PerformanceOptimizationService {
     console.log(`Purging CDN cache (${this.cdnConfig.provider}):`, paths);
   }
 
-  async recordPerformanceMetrics(metrics: PerformanceMetrics): Promise<void> {
-    this.performanceLogs.push(metrics);
+  async recordPerformanceMetrics(metrics: Omit<PerformanceMetrics, 'timestamp'>): Promise<void> {
+    this.performanceLogs.push({ ...metrics, timestamp: new Date() });
 
     // Keep only last 1000 metrics
     if (this.performanceLogs.length > 1000) {
@@ -149,9 +150,7 @@ class PerformanceOptimizationService {
     p95: PerformanceMetrics;
   }> {
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const recentMetrics = this.performanceLogs.filter(
-      m => (m as unknown as Record<string, unknown>).timestamp >= cutoffTime
-    );
+    const recentMetrics = this.performanceLogs.filter(m => m.timestamp >= cutoffTime);
 
     if (recentMetrics.length === 0) {
       throw new Error('No metrics available');
@@ -175,7 +174,8 @@ class PerformanceOptimizationService {
       cumulativeLayoutShift: metrics.reduce((sum, m) => sum + m.cumulativeLayoutShift, 0) / count,
       timeToInteractive: metrics.reduce((sum, m) => sum + m.timeToInteractive, 0) / count,
       memoryUsage: metrics.reduce((sum, m) => sum + m.memoryUsage, 0) / count,
-      databaseQueryTime: metrics.reduce((sum, m) => sum + m.databaseQueryTime, 0) / count
+      databaseQueryTime: metrics.reduce((sum, m) => sum + m.databaseQueryTime, 0) / count,
+      timestamp: new Date()
     };
   }
 
@@ -187,7 +187,8 @@ class PerformanceOptimizationService {
       cumulativeLayoutShift: Math.min(...metrics.map(m => m.cumulativeLayoutShift)),
       timeToInteractive: Math.min(...metrics.map(m => m.timeToInteractive)),
       memoryUsage: Math.min(...metrics.map(m => m.memoryUsage)),
-      databaseQueryTime: Math.min(...metrics.map(m => m.databaseQueryTime))
+      databaseQueryTime: Math.min(...metrics.map(m => m.databaseQueryTime)),
+      timestamp: new Date()
     };
   }
 
@@ -199,7 +200,8 @@ class PerformanceOptimizationService {
       cumulativeLayoutShift: Math.max(...metrics.map(m => m.cumulativeLayoutShift)),
       timeToInteractive: Math.max(...metrics.map(m => m.timeToInteractive)),
       memoryUsage: Math.max(...metrics.map(m => m.memoryUsage)),
-      databaseQueryTime: Math.max(...metrics.map(m => m.databaseQueryTime))
+      databaseQueryTime: Math.max(...metrics.map(m => m.databaseQueryTime)),
+      timestamp: new Date()
     };
   }
 

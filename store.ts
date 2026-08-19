@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { BrandDNA, Campaign, UserTier, VideoJob, Agent, LeadProfile, ProviderConfig } from './types';
+import { BrandDNA, Campaign, UserTier, VideoJob, Agent, LeadProfile, ProviderConfig, LLMProvider, ImageProvider, VideoProvider } from './types';
 import { featureFlagService } from './services/featureFlagService';
 
 /**
@@ -84,9 +84,9 @@ interface AppState {
   deleteAgent: (id: string) => void;
   updateProviders: (updates: Partial<ProviderConfig>) => void;
   setApiKey: (provider: keyof ProviderConfig['keys'], key: string) => void;
-  setActiveLLM: (provider: string) => void;
-  setActiveImage: (provider: string) => void;
-  setActiveVideo: (provider: string) => void;
+  setActiveLLM: (provider: LLMProvider) => void;
+  setActiveImage: (provider: ImageProvider) => void;
+  setActiveVideo: (provider: VideoProvider) => void;
   toggleTrendPulse: () => void;
   reset: () => void;
 }

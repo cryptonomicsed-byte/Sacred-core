@@ -1,3 +1,9 @@
+> **⚠️ HISTORICAL DOCUMENT — CONTAINS UNVERIFIED / FALSE CLAIMS.**
+> This file was written during an earlier development pass and contains claims ("Production Ready", "Grade A+", specific uptime/revenue/LOC/coverage numbers) that were never actually measured or, in several cases, are contradicted by later work (e.g. Supabase was later deferred, SSO was later found to be unimplemented UI). It is kept for historical record only.
+> **For the current, verified state of this project, see [FINAL_STATUS_REPORT.md](./FINAL_STATUS_REPORT.md), [README.md](./README.md), and [00_START_HERE.md](./00_START_HERE.md).**
+
+---
+
 # Sacred Core - Phase 4 COMPLETE ✅
 ## Enterprise Scale & Full CoreDNA2-work Parity
 

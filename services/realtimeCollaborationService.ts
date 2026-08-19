@@ -28,10 +28,11 @@ class RealtimeCollaborationService {
   }
 
   async joinSession(sessionId: string, userId: string, email: string): Promise<CollaborationSession> {
-    const session = this.sessions.get(sessionId) || await hybridStorage.get(`collab-session-${sessionId}`);
+    const session: CollaborationSession | undefined =
+      this.sessions.get(sessionId) || (await hybridStorage.get(`collab-session-${sessionId}`));
     if (!session) throw new Error('Session not found');
 
-    const existingParticipant = session.participants.find(p => p.userId === userId);
+    const existingParticipant = session.participants.find((p) => p.userId === userId);
     if (!existingParticipant) {
       session.participants.push({
         userId,

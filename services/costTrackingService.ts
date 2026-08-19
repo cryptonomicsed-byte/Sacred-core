@@ -308,7 +308,7 @@ class CostTrackingService {
    */
   async reset(): Promise<void> {
     this.usageLogs = [];
-    await hybridStorage.delete('cost-tracking-logs');
+    await hybridStorage.remove('cost-tracking-logs');
     console.log('🔄 Cost tracking data reset');
   }
 }

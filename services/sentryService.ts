@@ -1,9 +1,9 @@
 /**
  * Sentry Integration Service
- * 
+ *
  * Initializes Sentry for error tracking and performance monitoring.
  * Captures unhandled exceptions, promise rejections, and performance metrics.
- * 
+ *
  * Configuration:
  * - VITE_SENTRY_DSN: Sentry project DSN (optional)
  * - VITE_SENTRY_ENABLED: Enable/disable Sentry (default: true if DSN present)
@@ -12,9 +12,6 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
-// Note: Some advanced features (Replay, startTransaction, ErrorMessage) 
-// may not be available in all Sentry versions. We provide them conditionally.
 
 export interface SentryConfig {
   dsn?: string;
@@ -48,29 +45,20 @@ class SentryService {
     }
 
     try {
-      const integrations: Sentry.Integration[] = [
-        new BrowserTracing({
-          tracePropagationTargets: ['localhost', /^\//],
-          shouldCreateSpanForRequest: (url) => {
-            return !url.includes('/health') && !url.includes('/metrics');
-          },
-        }),
-      ];
-
-      // Add Replay integration if available
-      if ((Sentry as any).Replay) {
-        integrations.push(
-          new (Sentry as any).Replay({
-            maskAllText: true,
-            blockAllMedia: true,
-          })
-        );
-      }
-
       Sentry.init({
         dsn,
         environment,
-        integrations,
+        integrations: [
+          Sentry.browserTracingIntegration({
+            shouldCreateSpanForRequest: (url) => {
+              return !url.includes('/health') && !url.includes('/metrics');
+            },
+          }),
+          Sentry.replayIntegration({
+            maskAllText: true,
+            blockAllMedia: true,
+          }),
+        ],
         tracesSampleRate: traceSampleRate,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,
@@ -169,26 +157,6 @@ class SentryService {
   }
 
   /**
-   * Start a performance transaction
-   */
-  startTransaction(
-    name: string,
-    op: string = 'http.request'
-  ): any {
-    if (!this.initialized) return null;
-
-    // startTransaction available in Sentry >= 6.0
-    if ((Sentry as any).startTransaction) {
-      return (Sentry as any).startTransaction({
-        name,
-        op,
-      });
-    }
-
-    return null;
-  }
-
-  /**
    * Check if Sentry is initialized
    */
   isInitialized(): boolean {
@@ -212,7 +180,6 @@ class SentryService {
 export const sentryService = new SentryService();
 
 /**
- * Export Sentry's utility functions for use in components
+ * Export Sentry's utility components for use elsewhere in the app
  */
 export const SentryErrorBoundary = Sentry.ErrorBoundary;
-export const SentryErrorMessage = (Sentry as any).ErrorMessage || null;

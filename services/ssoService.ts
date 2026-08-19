@@ -12,9 +12,14 @@
  *   await ssoService.signInWithProvider('google');
  */
 
+import type { Provider as SupabaseProvider } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
 
 export type OAuthProvider = 'google' | 'github' | 'microsoft';
+
+// Supabase has no "microsoft" provider id — Azure AD is exposed as "azure".
+const toSupabaseProvider = (provider: OAuthProvider): SupabaseProvider =>
+  provider === 'microsoft' ? 'azure' : provider;
 
 export interface SSOConfig {
   provider: OAuthProvider;
@@ -91,7 +96,7 @@ class SSOService {
       if (!supabase) return false;
 
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: toSupabaseProvider(provider),
         options: {
           redirectTo: `${window.location.origin}/#/auth/callback`,
         },
@@ -172,7 +177,7 @@ class SSOService {
       }
 
       const { error } = await supabase.auth.linkIdentity({
-        provider,
+        provider: toSupabaseProvider(provider),
         options: {
           redirectTo: `${window.location.origin}/#/settings`,
         },
@@ -204,9 +209,20 @@ class SSOService {
       const supabase = getSupabase();
       if (!supabase) return false;
 
-      const { error } = await supabase.auth.unlinkIdentity({
-        provider,
-      });
+      const { data: identitiesData, error: identitiesError } = await supabase.auth.getUserIdentities();
+      if (identitiesError) {
+        console.error(`❌ Failed to look up identities before unlinking ${provider}:`, identitiesError.message);
+        return false;
+      }
+
+      const targetProvider = toSupabaseProvider(provider);
+      const identity = identitiesData?.identities.find((i) => i.provider === targetProvider);
+      if (!identity) {
+        console.warn(`⚠️ No linked ${provider} identity to unlink`);
+        return false;
+      }
+
+      const { error } = await supabase.auth.unlinkIdentity(identity);
 
       if (error) {
         console.error(`❌ Failed to unlink ${provider}:`, error.message);
@@ -236,9 +252,13 @@ class SSOService {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) return [];
 
-      // Get identities from user metadata
+      // Get identities from user metadata. "email" identities (password auth)
+      // aren't OAuth providers, and Supabase's "azure" maps back to our "microsoft".
       const identities = user.identities || [];
-      return identities.map((i) => i.provider as OAuthProvider).filter((p) => p !== 'email');
+      return identities
+        .map((i) => i.provider)
+        .filter((p): p is 'google' | 'github' | 'azure' => p === 'google' || p === 'github' || p === 'azure')
+        .map((p): OAuthProvider => (p === 'azure' ? 'microsoft' : p));
     } catch (error) {
       console.error('❌ Failed to get linked providers:', error);
       return [];

@@ -37,7 +37,7 @@ class LeadManagementService {
   async createLead(lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<Lead> {
     const newLead: Lead = {
       ...lead,
-      id: `lead-${Date.now()}`,
+      id: `lead-${crypto.randomUUID()}`,
       score: 0,
       createdAt: new Date(),
       updatedAt: new Date()
