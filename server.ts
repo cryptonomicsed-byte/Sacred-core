@@ -18,7 +18,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import Database from 'better-sqlite3';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,8 +67,18 @@ db.exec(`
   );
 `);
 
+const cleanupExpiredSessions = () => {
+  db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now') OR revoked_at IS NOT NULL").run();
+};
+cleanupExpiredSessions();
+const sessionCleanupInterval = setInterval(cleanupExpiredSessions, 60 * 60 * 1000); // hourly
+
 const MAX_NAME_LENGTH = 100;
 const MAX_AVATAR_LENGTH = 100_000; // ~100KB, enough for a small data-URI avatar
+const MAX_PASSWORD_LENGTH = 72; // bcrypt silently truncates beyond this; reject instead of pretending it worked
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -140,14 +150,29 @@ app.get('/health', async () => {
 /**
  * Auth Routes
  */
-app.post('/api/auth/signup', async (request, reply) => {
-  const { email, password, name } = request.body as { email: string; password: string; name?: string };
+app.post('/api/auth/signup', {
+  config: {
+    rateLimit: { max: 15, timeWindow: '1 minute' }
+  }
+}, async (request, reply) => {
+  const { email: rawEmail, password, name: rawName } = request.body as { email: string; password: string; name?: string };
 
-  if (!email || !password) {
+  if (!rawEmail || !password) {
     return reply.status(400).send({ success: false, error: 'Email and password required' });
+  }
+  const email = normalizeEmail(rawEmail);
+  if (!EMAIL_RE.test(email)) {
+    return reply.status(400).send({ success: false, error: 'Enter a valid email address' });
   }
   if (password.length < 8) {
     return reply.status(400).send({ success: false, error: 'Password must be at least 8 characters' });
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return reply.status(400).send({ success: false, error: `Password must be ${MAX_PASSWORD_LENGTH} characters or fewer` });
+  }
+  const name = rawName?.trim().slice(0, MAX_NAME_LENGTH);
+  if (rawName !== undefined && rawName.length > MAX_NAME_LENGTH) {
+    return reply.status(400).send({ success: false, error: `name must be ${MAX_NAME_LENGTH} characters or fewer` });
   }
 
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -173,11 +198,12 @@ app.post('/api/auth/login', {
     rateLimit: { max: 5, timeWindow: '1 minute' }
   }
 }, async (request, reply) => {
-  const { email, password } = request.body as { email: string; password: string };
+  const { email: rawEmail, password } = request.body as { email: string; password: string };
 
-  if (!email || !password) {
+  if (!rawEmail || !password) {
     return reply.status(400).send({ success: false, error: 'Email and password required' });
   }
+  const email = normalizeEmail(rawEmail);
 
   const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as UserRow | undefined;
   if (!row || !(await bcrypt.compare(password, row.password_hash))) {
@@ -299,6 +325,7 @@ const signals = ['SIGINT', 'SIGTERM'];
 signals.forEach(signal => {
   process.on(signal, async () => {
     console.log(`\n⏹️  Received ${signal}, shutting down gracefully...`);
+    clearInterval(sessionCleanupInterval);
     db.close();
     await app.close();
     process.exit(0);
