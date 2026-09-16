@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and token balance information.",
+      "type": "object",
+      "properties": {
+        "tokens": { "type": "number", "description": "Current token balance." },
+        "userTier": { "type": "string", "enum": ["free", "pro", "agency"], "description": "Subscription tier." },
+        "customGeminiKey": { "type": "string", "description": "Optional user-provided Gemini API key." }
+      },
+      "required": ["tokens", "userTier"]
+    },
+    "Brand": {
+      "title": "Brand DNA",
+      "description": "Core identity and values of a brand.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "industry": { "type": "string" },
+        "tone": { "type": "string" },
+        "values": { "type": "array", "items": { "type": "string" } },
+        "mission": { "type": "string" },
+        "targetAudience": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Campaign": {
+      "title": "Marketing Campaign",
+      "description": "A collection of assets and strategy for a marketing goal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "objective": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "completed"] },
+        "assets": { "type": "array", "items": { "$ref": "Asset" } }
+      },
+      "required": ["id", "title"]
+    },
+    "Asset": {
+      "title": "Campaign Asset",
+      "description": "A single piece of content (post, email, video) within a campaign.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "image", "video", "audio"] },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["draft", "approved", "posted", "failed"] },
+            "scheduledAt": { "type": "string", "format": "date-time" },
+            "channel": { "type": "string" },
+            "qualityScore": { "type": "number" }
+          }
+        }
+      }
+    },
+    "Lead": {
+      "title": "Lead Profile",
+      "description": "Information about a potential customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "score": { "type": "number" },
+        "status": { "type": "string", "enum": ["new", "contacted", "qualified", "closed"] }
+      }
+    },
+    "VideoJob": {
+      "title": "Video Generation Job",
+      "description": "A request to generate a video using AI.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "prompt": { "type": "string" },
+        "engine": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "failed"] },
+        "videoUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "Agent": {
+      "title": "AI Agent",
+      "description": "A specialized AI persona for specific tasks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "systemPrompt": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      }
+    },
+    "AuditLog": {
+      "title": "System Audit Log",
+      "description": "A record of a system event or user action.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User account root document."
+    },
+    "/users/{userId}/brands/{brandId}": {
+      "schema": "Brand",
+      "description": "User-defined brands."
+    },
+    "/users/{userId}/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "User marketing campaigns."
+    },
+    "/users/{userId}/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "User lead database."
+    },
+    "/users/{userId}/videoJobs/{jobId}": {
+      "schema": "VideoJob",
+      "description": "User video generation history."
+    },
+    "/users/{userId}/agents/{agentId}": {
+      "schema": "Agent",
+      "description": "User-defined AI agents."
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Global system audit logs."
+    }
+  }
+}
