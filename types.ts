@@ -295,7 +295,7 @@ export interface AudienceFeedback {
   suggestedImprovement: string;
 }
 
-export type AgentType = 'support' | 'sales' | 'content' | 'creative' | 'custom';
+export type AgentType = 'support' | 'sales' | 'lead' | 'closing' | 'content' | 'creative' | 'custom';
 
 export interface Agent {
   id: string;
