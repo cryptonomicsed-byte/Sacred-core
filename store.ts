@@ -105,12 +105,13 @@ export const useStore = create<AppState>()(
       agents: [],
       showTrendPulse: false, 
       providers: {
-        activeLLM: 'gemini',
+        activeLLM: 'deepseek',
         activeImage: 'gemini',
         activeVideo: 'veo',
         activeWorkflow: 'n8n',
         keys: {
-          gemini: process.env.API_KEY || ''
+          gemini: process.env.API_KEY || '',
+          deepseek: ''
         }
       },
       

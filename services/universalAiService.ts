@@ -4,6 +4,11 @@ import { useStore } from "../store";
 import { neuralCache } from "./neuralCache";
 import { costTrackingService } from "./costTrackingService";
 
+// Same-origin DeepSeek proxy when configured (key stays server-side); falls back to
+// the public DeepSeek endpoint with the user's own key.
+const AI_PROXY = (import.meta as any).env?.VITE_AI_PROXY as string | undefined;
+const DEEPSEEK_BASE = AI_PROXY || 'https://api.deepseek.com';
+
 export interface TextGenerationParams {
   systemInstruction?: string;
   prompt: string;
@@ -124,7 +129,7 @@ export const universalAiService = {
           result = await this.generateAnthropic(finalParams, keys.anthropic); 
           break;
         case 'deepseek':
-          result = await this.generateGenericOAI(finalParams, keys.deepseek, 'https://api.deepseek.com', 'deepseek-chat');
+          result = await this.generateGenericOAI(finalParams, keys.deepseek || (AI_PROXY ? 'proxied' : ''), DEEPSEEK_BASE, 'deepseek-chat');
           break;
         case 'groq':
           result = await this.generateGenericOAI(finalParams, keys.groq, 'https://api.groq.com/openai/v1', 'llama-3.3-70b-versatile');
